@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Adventure!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            color: white;
+        }
+        .game-container {
+            text-align: center;
+            position: relative;
+        }
+        canvas {
+            border: 4px solid #ffcc00;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            background: linear-gradient(to bottom, #4ec0ca, #87ceeb);
+        }
+        .instructions {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #a0aec0;
+        }
+        span {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Flappy Bird Adventure! 🚀</h1>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div class="instructions">Uçmaq üçün <span>Boşluq (Space)</span> düyməsini istifadə et!</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+       
+        let birdX = 50;
+        let birdY = 150;
+        let birdRadius = 15;
+        let gravity = 0.5;
+        let lift = -8.5;
+        let velocity = 0;
+
+        let pipes = [];
+        let pipeWidth = 60;
+        let pipeGap = 160;
+        let pipeSpeed = 3;
+        let frameCount = 0;
+        let score = 0;
+        let highScore = 0;
+        let isGameOver = false;
+        let gameStarted = false;
+
+        
+        document.addEventListener("keydown", function(e) {
+            if (e.code === "Space") {
+                if (!gameStarted) {
+                    gameStarted = true;
+                }
+                if (isGameOver) {
+                    resetGame();
+                } else {
+                    velocity = lift;
+                }
+            }
+        });
+
+       
+        function resetGame() {
+            birdY = 150;
+            velocity = 0;
+            pipes = [];
+            score = 0;
+            frameCount = 0;
+            isGameOver = false;
+        }
+
+        
+        function createPipe() {
+            let minHeight = 50;
+            let maxHeight = canvas.height - pipeGap - 100;
+            let height = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+
+            pipes.push({
+                x: canvas.width,
+                topHeight: height,
+                bottomY: height + pipeGap,
+                passed: false
+            });
+        }
+
+        
+        function drawBird() {
+            
+            ctx.fillStyle = "#ffcc00";
+            ctx.beginPath();
+            ctx.arc(birdX, birdY, birdRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#cc9900";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.arc(birdX + 6, birdY - 4, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "black";
+            ctx.beginPath();
+            ctx.arc(birdX + 7, birdY - 4, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            
+            ctx.fillStyle = "#ff6600";
+            ctx.beginPath();
+            ctx.moveTo(birdX + birdRadius, birdY - 2);
+            ctx.lineTo(birdX + birdRadius + 8, birdY + 2);
+            ctx.lineTo(birdX + birdRadius, birdY + 6);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawPipes() {
+            pipes.forEach(pipe => {
+                
+                ctx.fillStyle = "#2ecc71";
+                ctx.strokeStyle = "#27ae60";
+                ctx.lineWidth = 3;
+
+               
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+                ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.topHeight);
+
+                
+                ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, canvas.height - pipe.bottomY);
+                ctx.strokeRect(pipe.x, pipe.bottomY, pipeWidth, canvas.height - pipe.bottomY);
+            });
+        }
+
+        function drawBackground() {
+            
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.beginPath();
+            ctx.arc(100, 100, 30, 0, Math.PI * 2);
+            ctx.arc(130, 90, 40, 0, Math.PI * 2);
+            ctx.arc(160, 100, 25, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(300, 250, 25, 0, Math.PI * 2);
+            ctx.arc(325, 240, 35, 0, Math.PI * 2);
+            ctx.arc(350, 250, 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawScore() {
+            ctx.fillStyle = "white";
+            ctx.font = "bold 28px 'Segoe UI'";
+            ctx.textAlign = "center";
+            ctx.fillText(score, canvas.width / 2, 50);
+        }
+
+        function drawStartScreen() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#ffcc00";
+            ctx.font = "bold 28px 'Segoe UI'";
+            ctx.textAlign = "center";
+            ctx.fillText("OYUNA BAŞLA", canvas.width / 2, canvas.height / 2 - 30);
+
+            ctx.fillStyle = "white";
+            ctx.font = "16px 'Segoe UI'";
+            ctx.fillText("Başlamaq üçün Space düyməsini bas", canvas.width / 2, canvas.height / 2 + 10);
+        }
+
+        function drawGameOverScreen() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#ff4d4d";
+            ctx.font = "bold 32px 'Segoe UI'";
+            ctx.textAlign = "center";
+            ctx.fillText("OYUN BİTDİ!", canvas.width / 2, canvas.height / 2 - 40);
+
+            ctx.fillStyle = "white";
+            ctx.font = "20px 'Segoe UI'";
+            ctx.fillText(`Xalınız: ${score}`, canvas.width / 2, canvas.height / 2);
+            ctx.fillText(`Ən yüksək: ${highScore}`, canvas.width / 2, canvas.height / 2 + 35);
+
+            ctx.fillStyle = "#ffcc00";
+            ctx.font = "16px 'Segoe UI'";
+            ctx.fillText("Yenidən oynamaq üçün Space bas", canvas.width / 2, canvas.height / 2 + 80);
+        }
+
+        
+        function update() {
+            if (!gameStarted) return;
+
+            if (!isGameOver) {
+               
+                velocity += gravity;
+                birdY += velocity;
+
+                
+                if (frameCount % 90 === 0) {
+                    createPipe();
+                }
+
+                pipes.forEach(pipe => {
+                    pipe.x -= pipeSpeed;
+
+                    // Xal hesablama
+                    if (!pipe.passed && pipe.x + pipeWidth < birdX) {
+                        score++;
+                        if (score > highScore) highScore = score;
+                        pipe.passed = true;
+                    }
+
+                   
+                    if (
+                        birdX + birdRadius > pipe.x &&
+                        birdX - birdRadius < pipe.x + pipeWidth &&
+                        (birdY - birdRadius < pipe.topHeight || birdY + birdRadius > pipe.bottomY)
+                    ) {
+                        isGameOver = true;
+                    }
+                });
+
+                
+                pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
+
+                
+                if (birdY + birdRadius >= canvas.height || birdY - birdRadius <= 0) {
+                    isGameOver = true;
+                }
+
+                frameCount++;
+            }
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawBackground();
+            drawPipes();
+            drawBird();
+
+            if (gameStarted && !isGameOver) {
+                drawScore();
+            }
+
+            if (!gameStarted) {
+                drawStartScreen();
+            } else if (isGameOver) {
+                drawGameOverScreen();
+            }
+        }
+
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
