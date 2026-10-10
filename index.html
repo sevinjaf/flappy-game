@@ -50,7 +50,39 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-       
+        // Veb Audio (Səs effektləri üçün)
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Səs çalmaq üçün köməkçi funksiya (Sinxronlaşdırılmış tezliklər)
+        function playSound(frequency, type, duration) {
+            if (!audioCtx) return;
+            try {
+                let osc = audioCtx.createOscillator();
+                let gainNode = audioCtx.createGain();
+                
+                osc.type = type;
+                osc.frequency.value = frequency;
+                
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {
+                console.log(e);
+            }
+        }
+
+        // Oyun dəyişənləri
         let birdX = 50;
         let birdY = 150;
         let birdRadius = 15;
@@ -68,9 +100,10 @@
         let isGameOver = false;
         let gameStarted = false;
 
-        
+        // İdarəetmə
         document.addEventListener("keydown", function(e) {
             if (e.code === "Space") {
+                initAudio();
                 if (!gameStarted) {
                     gameStarted = true;
                 }
@@ -78,11 +111,11 @@
                     resetGame();
                 } else {
                     velocity = lift;
+                    playSound(400, 'sine', 0.1); // Uçuş səsi
                 }
             }
         });
 
-       
         function resetGame() {
             birdY = 150;
             velocity = 0;
@@ -92,7 +125,6 @@
             isGameOver = false;
         }
 
-        
         function createPipe() {
             let minHeight = 50;
             let maxHeight = canvas.height - pipeGap - 100;
@@ -106,9 +138,7 @@
             });
         }
 
-        
         function drawBird() {
-            
             ctx.fillStyle = "#ffcc00";
             ctx.beginPath();
             ctx.arc(birdX, birdY, birdRadius, 0, Math.PI * 2);
@@ -117,7 +147,6 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            
             ctx.fillStyle = "white";
             ctx.beginPath();
             ctx.arc(birdX + 6, birdY - 4, 4, 0, Math.PI * 2);
@@ -127,7 +156,6 @@
             ctx.arc(birdX + 7, birdY - 4, 1.5, 0, Math.PI * 2);
             ctx.fill();
 
-            
             ctx.fillStyle = "#ff6600";
             ctx.beginPath();
             ctx.moveTo(birdX + birdRadius, birdY - 2);
@@ -139,23 +167,19 @@
 
         function drawPipes() {
             pipes.forEach(pipe => {
-                
                 ctx.fillStyle = "#2ecc71";
                 ctx.strokeStyle = "#27ae60";
                 ctx.lineWidth = 3;
 
-               
                 ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight);
                 ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.topHeight);
 
-                
                 ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, canvas.height - pipe.bottomY);
                 ctx.strokeRect(pipe.x, pipe.bottomY, pipeWidth, canvas.height - pipe.bottomY);
             });
         }
 
         function drawBackground() {
-            
             ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
             ctx.beginPath();
             ctx.arc(100, 100, 30, 0, Math.PI * 2);
@@ -210,16 +234,13 @@
             ctx.fillText("Yenidən oynamaq üçün Space bas", canvas.width / 2, canvas.height / 2 + 80);
         }
 
-        
         function update() {
             if (!gameStarted) return;
 
             if (!isGameOver) {
-               
                 velocity += gravity;
                 birdY += velocity;
 
-                
                 if (frameCount % 90 === 0) {
                     createPipe();
                 }
@@ -227,29 +248,30 @@
                 pipes.forEach(pipe => {
                     pipe.x -= pipeSpeed;
 
-                    // Xal hesablama
+                    // Xal keçəndə səs
                     if (!pipe.passed && pipe.x + pipeWidth < birdX) {
                         score++;
                         if (score > highScore) highScore = score;
                         pipe.passed = true;
+                        playSound(600, 'triangle', 0.2); // Xal qazanma səsi
                     }
 
-                   
+                    // Toqquşma
                     if (
                         birdX + birdRadius > pipe.x &&
                         birdX - birdRadius < pipe.x + pipeWidth &&
                         (birdY - birdRadius < pipe.topHeight || birdY + birdRadius > pipe.bottomY)
                     ) {
                         isGameOver = true;
+                        playSound(150, 'sawtooth', 0.4); // Ölüm / Dəymə səsi
                     }
                 });
 
-                
                 pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
 
-                
                 if (birdY + birdRadius >= canvas.height || birdY - birdRadius <= 0) {
                     isGameOver = true;
+                    playSound(150, 'sawtooth', 0.4); // Ölüm / Yerə dəymə səsi
                 }
 
                 frameCount++;
